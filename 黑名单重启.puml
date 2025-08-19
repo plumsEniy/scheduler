@@ -1,0 +1,31 @@
+@startuml
+
+title 主机驱逐下线
+
+start
+:页面发起主机重启;
+:等待审批;
+:审批通过;
+:摘除主机label到默认label下;
+if (检查任务是否running) then (running任务执行)
+  if (是否开启checkpoint) then (开启checkpoint)
+    :检查半小时内checkpoint;
+  endif
+else (非running跳过)
+    stop
+endif
+if (是否进行任务回滚) then (任务回滚)
+    :调用rollback方法，并开启newsession;
+else(任务执行重启)
+ if (是为jobmanager任务) then (jobmanager任务)
+    :调用start方法启动任务;
+ else(taskmanager任务)
+    :调用reload方法重启任务，并传入黑名单主机;
+    :如果调用start方法启动任务;
+    endif
+endif
+:检查任务运行状态;
+:检查checkpoint是否成功;
+stop
+
+@enduml

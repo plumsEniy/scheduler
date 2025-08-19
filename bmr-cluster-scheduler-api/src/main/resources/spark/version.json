@@ -1,0 +1,4 @@
+{
+  "spark_3.1" : "hub.bilibili.co/compile/spark-internal:client-1.1.20-rc7",
+  "spark_4.0" : "hub.bilibili.co/compile/spark-internal:client-1.1.20-rc8"
+}

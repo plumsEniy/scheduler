@@ -1,0 +1,18 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+title: 流程图
+autonumber
+
+control "MasterSchedulerBootstrap\n工作流生产者" as 工作流生产者
+control "WorkflowIntanceLooper\n工作流消费者" as 工作流消费者
+database "msql" as 数据库
+entity "WorkflowIntanceExecuteRunnable\n工作流执行线程" as 工作流执行线程
+entity "ProcessInstanceExecCacheManager\n工作流内存缓存map" as 缓存map
+
+数据库 -> 工作流生产者: 根据主机切片slot\n获取需要处理的工作流列表
+工作流生产者 -> 工作流执行线程:初始化工作流执行线程
+工作流执行线程 -> 工作流生产者:完成初始化，将工作流封装到工作流执行线程中
+工作流生产者 -> 缓存map:将工作流线程放入到缓存map中，key为操作方式（开始，回滚，重试），value为工作流线程
+工作流消费者->缓存map:获取工作流并更具工作流的操作方式进行处理
+@enduml

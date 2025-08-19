@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bilibili.cluster.scheduler.dao.mapper.ExecutionNodeMapper">
+
+    <select id="queryByFlowIdAndNodeStatus"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionNodeEntity">
+        select *
+        from scheduler_execution_node_v2
+        where
+        flow_id = #{flowId}
+        and batch_id = #{batchId}
+        and deleted = 0
+        and node_status in
+        <foreach item="nodeStatus" index="index" collection="nodeStatus" open="(" close=")"
+                 separator=",">
+            #{nodeStatus}
+        </foreach>
+        order by id desc
+    </select>
+
+    <select id="getByFlowIdAndNodeStatus"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionNodeEntity">
+        select *
+           from scheduler_execution_node_v2
+        where
+           flow_id = #{flowId}
+        and deleted = 0
+        and node_status in
+        <foreach item="nodeStatus" index="index" collection="nodeStatus" open="(" close=")"
+                 separator=",">
+            #{nodeStatus}
+        </foreach>
+        order by id desc
+    </select>
+
+    <update id="updateNodeStatusById">
+        update scheduler_execution_node_v2
+        set node_status = #{nodeExecuteStatus}
+        where deleted = 0
+          and id = #{id}
+    </update>
+
+    <update id="updateNodeStatusByFlowIdAndNodeStatus">
+        update scheduler_execution_node_v2
+        set node_status = #{targetNodeExecuteStatus}
+        where deleted = 0
+          and node_status = #{originNodeExecuteStatus}
+          and flow_id = #{flowId}
+    </update>
+
+    <update id="updateNodeStatusByFlowIdAndBatchId">
+        update scheduler_execution_node_v2
+        set node_status = #{nodeExecuteStatus}
+        where deleted = 0
+          and flow_id = #{flowId}
+          and batch_id = #{batchId}
+    </update>
+
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="executionNodeEntityList.id">
+        INSERT INTO scheduler_execution_node_v2
+        (`id`,`node_name`, `flow_id`,`batch_id`,`operator`,`node_status`,`operation_result`,`rack`,`ip`,`exec_stage`, `node_type`)
+        VALUES
+        <foreach collection="executionNodeEntityList" item="item" separator=",">
+            (
+            #{item.id, jdbcType=BIGINT},
+            #{item.nodeName, jdbcType=VARCHAR},
+            #{item.flowId,jdbcType=BIGINT},
+            #{item.batchId,jdbcType=INTEGER},
+            #{item.operator,jdbcType=VARCHAR},
+            #{item.nodeStatus,jdbcType=VARCHAR},
+            #{item.operationResult,jdbcType=VARCHAR},
+            #{item.rack,jdbcType=VARCHAR},
+            #{item.ip,jdbcType=VARCHAR},
+            #{item.execStage,jdbcType=VARCHAR},
+            #{item.nodeType,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+
+    <select id="findExecuteNodeByNodeStatus"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionNodeEntity">
+        select node.*
+        from scheduler_execution_node_v2 node
+        left join scheduler_execution_flow_v2 flow on node.flow_id = flow.id
+        where
+        node.deleted = 0 and flow.deleted= 0
+        and flow_status in ('UN_EXECUTE', 'IN_EXECUTE', 'PAUSED', 'FAIL_EXECUTE','SUCCEED_EXECUTE')
+        and node.instance_id > 0
+        and node_status in
+        <foreach item="nodeStatus" index="index" collection="nodeStatus" open="(" close=")"
+                 separator=",">
+            #{nodeStatus}
+        </foreach>
+        order by node.id desc
+    </select>
+    <select id="queryNodePage" resultType="com.bilibili.cluster.scheduler.common.dto.node.BaseExecutionNodeDTO">
+        select node.*
+        from scheduler_execution_node_v2 node
+            ${ew.customSqlSegment}
+    </select>
+
+    <update id="updateNodeStartTimeOrEndTime">
+        update scheduler_execution_node_v2
+        <set>
+            <if test="startTime != null">
+                start_time = #{startTime},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime},
+            </if>
+        </set>
+        WHERE id = #{id} and instance_id = #{instanceId};
+    </update>
+
+
+    <select id="selectExecutionNodeSummary"
+            resultType="com.bilibili.cluster.scheduler.common.dto.node.dto.ExecutionNodeSummary">
+        select exec_stage as execStage, node_status as executeStatus, count(*) as count
+            from scheduler_execution_node_v2
+        where flow_id = #{flowId}
+            and deleted = 0
+            and node_type = 'NORMAL'
+        group by
+            exec_stage, node_status
+        order by
+            exec_stage asc
+    </select>
+
+</mapper>

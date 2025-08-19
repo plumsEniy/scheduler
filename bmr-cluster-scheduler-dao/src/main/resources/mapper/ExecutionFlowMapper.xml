@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bilibili.cluster.scheduler.dao.mapper.ExecutionFlowMapper">
+    <select id="selectPageList" resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionFlowEntity">
+        select flow.* from scheduler_execution_flow_v2 flow
+        <if test="(queryFlowPageReq.nodeName != null and queryFlowPageReq.nodeName != '') ">
+            right join scheduler_execution_node_v2 job on
+                    flow.id = job.flow_id
+            <if test="queryFlowPageReq.nodeName != null and queryFlowPageReq.nodeName != ''">
+                and job.node_name = #{queryFlowPageReq.nodeName}
+            </if>
+        </if>
+        where flow.deleted = 0
+        <if test="queryFlowPageReq.flowId != 0">
+            and flow.id = #{queryFlowPageReq.flowId}
+        </if>
+        <if test="queryFlowPageReq.flowStatus != null">
+            and flow.flow_status = #{queryFlowPageReq.flowStatus}
+        </if>
+        <if test="queryFlowPageReq.operator != null and queryFlowPageReq.operator != ''">
+            and flow.operator = #{queryFlowPageReq.operator}
+        </if>
+        <if test="queryFlowPageReq.componentName != null and queryFlowPageReq.componentName != ''">
+            and flow.component_name = #{queryFlowPageReq.componentName}
+        </if>
+        <if test="queryFlowPageReq.startTime != null">
+            and flow.start_time >= #{queryFlowPageReq.startTime}
+        </if>
+        <if test="queryFlowPageReq.endTime != null">
+            and flow.end_time &lt;= #{queryFlowPageReq.endTime}
+        </if>
+        order by flow.ctime desc
+    </select>
+
+    <select id="findExecuteFlowPageBySlot"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionFlowEntity">
+        select *
+        from scheduler_execution_flow_v2
+        where id % #{masterCount} = #{thisMasterSlot}
+          and deleted = 0
+          and flow_status in ('UN_EXECUTE'
+            , 'IN_EXECUTE', 'IN_ROLLBACK')
+        order by id asc
+            limit #{limit}
+        offset #{offset}
+    </select>
+
+
+    <select id="findExecuteFlowByFlowStatus"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionFlowEntity">
+        select *
+        from scheduler_execution_flow_v2
+        where deleted = 0
+          and flow_status in
+        <foreach item="flowStatus" index="index" collection="flowStatusEnums" open="(" close=")"
+                 separator=",">
+            #{flowStatus}
+        </foreach>
+        order by id desc
+    </select>
+
+    <update id="updateFlowStatusById">
+        update scheduler_execution_flow_v2
+        set flow_status = #{flowStatus}
+        where id = #{flowId}
+          and deleted = 0
+    </update>
+
+    <update id="updateFlow">
+        update scheduler_execution_flow_v2
+        <set>
+            <if test="updateExecutionFlowDTO.flowStatus != null">
+                flow_status = #{updateExecutionFlowDTO.flowStatus},
+            </if>
+            <if test="updateExecutionFlowDTO.startTime != null">
+                start_time = #{updateExecutionFlowDTO.startTime},
+            </if>
+            <if test="updateExecutionFlowDTO.endTime != null">
+                end_time = #{updateExecutionFlowDTO.endTime},
+            </if>
+            <if test="updateExecutionFlowDTO.currentBatchId != null">
+                cur_batch_id = #{updateExecutionFlowDTO.currentBatchId},
+            </if>
+            <if test="updateExecutionFlowDTO.hostName != null">
+                host_name = #{updateExecutionFlowDTO.hostName},
+            </if>
+        </set>
+        where id = #{updateExecutionFlowDTO.flowId}
+          and deleted = 0
+        <if test="updateExecutionFlowDTO.rollbackType != null">
+          and flow_rollback_type = #{updateExecutionFlowDTO.rollbackType}
+        </if>
+    </update>
+
+    <update id="updateCurFault">
+        update scheduler_execution_flow_v2
+        set cur_fault = #{curFault}
+        where id = #{flowId}
+          and deleted = 0
+    </update>
+
+    <select id="queryNeedFailoverFlowHost" resultType="java.lang.String">
+        SELECT distinct host_name as hostName
+        from scheduler_execution_flow_v2
+        where deleted = 0
+          and flow_status in ('UN_EXECUTE', 'IN_EXECUTE', 'PAUSED', 'FAIL_EXECUTE', 'IN_ROLLBACK')
+    </select>
+
+    <select id="queryNeedFailoverFlow" resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionFlowEntity">
+        SELECT *
+        from scheduler_execution_flow_v2
+        where deleted = 0
+          and flow_status in ('UN_EXECUTE', 'IN_EXECUTE', 'PAUSED', 'FAIL_EXECUTE', 'IN_ROLLBACK')
+          and host_name = #{hostName}
+    </select>
+    <select id="queryHostExecutionFlowPage"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionFlowEntity">
+        select flow.*
+        from scheduler_execution_flow_v2 flow
+                 right join scheduler_exclude_host host
+                            on host.flow_id = flow.id
+        where flow.deleted = 0
+          and host.deleted = 0
+          and host.exclude_host = #{req.hostName}
+        <if test="req.flowStatus != null">
+            and flow.flow_status = #{req.flowStatus}
+        </if>
+        <if test="req.operator != null and req.operator != ''">
+            and flow.operator = #{req.operator}
+        </if>
+        order by flow.ctime desc
+    </select>
+
+    <update id="updateFlowHostName">
+        update scheduler_execution_flow_v2
+        set host_name = #{hostName}
+        where deleted = 0
+          and id = #{flowId}
+    </update>
+
+    <update id="updateFlowMaxBatchId">
+        update scheduler_execution_flow_v2
+        set max_batch_id = #{maxBatchId}
+        where deleted = 0
+          and id = #{flowId}
+    </update>
+
+    <select id="selectSparkDeployPageList"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionFlowEntity">
+        select flow.*
+        from scheduler_execution_flow_v2 flow
+            left join scheduler_execution_flow_props props
+            on props.flow_id = flow.id
+        where flow.deleted = 0
+            and props.deleted = 0
+        <choose>
+            <when test="req.deployType != null and req.deployType != ''">
+                and flow.deploy_type = #{req.deployType}
+            </when>
+            <otherwise>
+                and flow.deploy_type in ('SPARK_DEPLOY', 'SPARK_DEPLOY_ROLLBACK', 'SPARK_VERSION_LOCK', 'SPARK_VERSION_RELEASE', 'SPARK_CLIENT_PACKAGE_DEPLOY', 'SPARK_EXPERIMENT',
+                                        'SPARK_PERIPHERY_COMPONENT_DEPLOY', 'SPARK_PERIPHERY_COMPONENT_ROLLBACK', 'SPARK_PERIPHERY_COMPONENT_LOCK', 'SPARK_PERIPHERY_COMPONENT_RELEASE')
+            </otherwise>
+        </choose>
+        <if test="req.flowStatus != null and req.flowStatus != ''">
+            and flow.flow_status = #{req.flowStatus}
+        </if>
+        <if test="req.opUser != null and req.opUser !='' ">
+            and flow.operator = #{req.opUser}
+        </if>
+
+        <if test="req.minStartTime != null and req.minStartTime !='' ">
+             and flow.ctime <![CDATA[ >= ]]> #{req.minStartTime}
+        </if>
+        <if test="req.maxStartTime != null and req.maxStartTime !='' ">
+             and flow.ctime <![CDATA[ < ]]> #{req.maxStartTime}
+        </if>
+
+        <if test="req.majorSparkVersion != null and req.majorSparkVersion!=''">
+            and props.props_content like CONCAT('%', #{req.majorSparkVersion}, '%')
+        </if>
+        <if test="req.targetSparkVersion != null and req.targetSparkVersion!=''">
+            and props.props_content like CONCAT('%', #{req.targetSparkVersion}, '%')
+        </if>
+        order by flow.id desc
+    </select>
+
+</mapper>

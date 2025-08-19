@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bilibili.cluster.scheduler.dao.mapper.ExecutionNodeEventMapper">
+
+    <select id="queryByExecutionNodeIdAndFlowId"
+            resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionNodeEventEntity">
+        select *
+        from scheduler_execution_node_event
+        where flow_id = #{flowId}
+          and execution_node_id = #{executionNodeId}
+          and deleted = 0
+        order by id desc
+    </select>
+
+    <update id="updateEventStatus">
+        update scheduler_execution_node_event
+        <set>
+            <if test="taskEvent.eventStatus != null">
+                event_status = #{taskEvent.eventStatus},
+            </if>
+            <if test="taskEvent.hostName != null || taskEvent.hostName != ''">
+                host_name = #{taskEvent.hostName},
+            </if>
+            <if test="taskEvent.startTime != null">
+                start_time = #{taskEvent.startTime},
+            </if>
+            <if test="taskEvent.endTime != null">
+                end_time = #{taskEvent.endTime},
+            </if>
+        </set>
+        where flow_id = #{taskEvent.flowId}
+        and execution_node_id = #{taskEvent.executionNodeId}
+        and event_type = #{taskEvent.eventTypeEnum}
+        and batch_id = #{taskEvent.batchId}
+        and id = #{taskEvent.eventId}
+        and instance_id = #{taskEvent.instanceId}
+        and deleted = 0
+    </update>
+
+    <update id="updateEventStatusByExecutionNodeId">
+        update scheduler_execution_node_event
+        set event_status = #{eventStatus}
+        where deleted = 0
+          and execution_node_id = #{executionNodeId}
+    </update>
+    <update id="updateEventStatusWithoutSuccessByExecutionNodeId">
+        update scheduler_execution_node_event
+        set event_status = #{eventStatus}
+        where deleted = 0
+          and execution_node_id = #{executionNodeId}
+          and event_status != 'SUCCEED_EVENT_EXECUTE'
+    </update>
+
+    <insert id="batchInsert">
+        INSERT INTO scheduler_execution_node_event
+        (`id`,`event_type`, `event_name`, `execution_node_id`,`flow_id`,`event_status`,`execute_order`,`release_scope`,`batch_id`,
+           `project_code`, `pipeline_code`, `task_code`, `failure_strategy`, `task_pos_type`)
+        VALUES
+        <foreach collection="executionNodeEventEntityList" item="item" separator=",">
+            (
+            #{item.id, jdbcType=BIGINT},
+            #{item.eventType, jdbcType=VARCHAR},
+            #{item.eventName, jdbcType=VARCHAR},
+            #{item.executionNodeId,jdbcType=BIGINT},
+            #{item.flowId,jdbcType=BIGINT},
+            #{item.eventStatus,jdbcType=VARCHAR},
+            #{item.executeOrder,jdbcType=INTEGER},
+            #{item.releaseScope,jdbcType=VARCHAR},
+            #{item.batchId,jdbcType=INTEGER},
+            #{item.projectCode,jdbcType=VARCHAR},
+            #{item.pipelineCode,jdbcType=VARCHAR},
+            #{item.taskCode,jdbcType=VARCHAR},
+            #{item.failureStrategy,jdbcType=VARCHAR},
+            #{item.taskPosType,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

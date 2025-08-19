@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bilibili.cluster.scheduler.dao.mapper.ExecutionLogMapper">
+    <select id="queryByExecuteIdAndLogType" resultType="com.bilibili.cluster.scheduler.common.entity.ExecutionLogEntity">
+        select *
+        from scheduler_execution_log
+        where deleted = 0
+          and execute_id = #{executeId}
+          and log_type = #{logType}
+          order by id asc limit 1;
+    </select>
+
+
+</mapper>

@@ -1,0 +1,98 @@
+spring:
+  profiles:
+    active: uat
+  servlet:
+    multipart:
+      enabled: false
+bmr:
+  scheduler:
+    admin:
+      list: xuchen,nizhiqiang,liuguohui
+rpc:
+  client:
+    "[datacenter.saber-streamer.saber-server]":
+      #      direct: 127.0.0.1:9002
+      plaintext: true
+      enableKeepAlive: true
+      keepAliveWithoutCalls: false
+      keepAliveTime: 10000
+      keepAliveTimeout: 10000
+      idleTimeout: 6000
+      callTimeout: 120000
+      subset: 30
+      scheduler: true
+      optional: false
+      flowControlWindow: 8388608
+      maxInboundMetadataSize: 8192
+      maxInboundMessageSize: 4194304
+      breaker:
+        volumn: 100
+        sleep: 1000
+        errorRate: 50
+        halfOpen: 10
+    "[datacenter.archer.archer-bypass]":
+      #      direct: 127.0.0.1:9002
+      plaintext: true
+      enableKeepAlive: true
+      keepAliveWithoutCalls: false
+      keepAliveTime: 10000
+      keepAliveTimeout: 10000
+      idleTimeout: 6000
+      callTimeout: 20000
+      subset: 30
+      scheduler: true
+      optional: false
+      flowControlWindow: 8388608
+      maxInboundMetadataSize: 8192
+      maxInboundMessageSize: 4194304
+      breaker:
+        volumn: 100
+        sleep: 1000
+        errorRate: 50
+        halfOpen: 10
+    "[datacenter.keeper.keeper]":
+      #      direct: 10.23.130.85:9001
+      plaintext: true
+      enableKeepAlive: true
+      keepAliveWithoutCalls: false
+      keepAliveTime: 6000
+      keepAliveTimeout: 20000
+      idleTimeout: 6000
+      callTimeout: 20000
+      subset: 30
+      scheduler: true
+      breaker:
+        volumn: 100
+        sleep: 1000
+        errorRate: 50
+        halfOpen: 10
+    "[datacenter.shielder.europa]":
+      plaintext: true
+      enableKeepAlive: true
+      keepAliveWithoutCalls: false
+      keepAliveTime: 6000
+      keepAliveTimeout: 20000
+      idleTimeout: 6000
+      callTimeout: 20000
+      subset: 30
+      scheduler: true
+      breaker:
+        volumn: 100
+        sleep: 1000
+        errorRate: 50
+        halfOpen: 10
+    "[inf.taishan.proxy]":
+      plaintext: true
+      enableKeepAlive: true
+      keepAliveWithoutCalls: false
+      keepAliveTime: 6000
+      keepAliveTimeout: 20000
+      idleTimeout: 6000
+      callTimeout: 20000
+      subset: 30
+      scheduler: true
+      breaker:
+        volumn: 100
+        sleep: 1000
+        errorRate: 50
+        halfOpen: 10
